@@ -32,8 +32,14 @@
   "hotPaths": [
     {
       "path": "index.html",
-      "accessCount": 13,
-      "lastAccessed": 1774975303062,
+      "accessCount": 36,
+      "lastAccessed": 1775033671478,
+      "type": "file"
+    },
+    {
+      "path": "docs/superpowers/specs/2026-04-01-phase1c-gcal-design.md",
+      "accessCount": 1,
+      "lastAccessed": 1775032958573,
       "type": "file"
     }
   ],
