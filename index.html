@@ -9,6 +9,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;600&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js" crossorigin="anonymous"></script>
 <style>
 *, *::before, *::after {
   box-sizing: border-box;
@@ -532,6 +533,288 @@ body::after {
   .timer-digits { font-size: 38px; }
   .mode-tabs { margin-bottom: 14px; }
 }
+
+/* ═══════════════════════ TODAY CARD ═══════════════════════ */
+
+.today-card {
+  flex: 1;
+  background: var(--glass);
+  border: 1px solid var(--glass-border);
+  border-radius: 20px;
+  padding: 20px 22px;
+  display: flex; flex-direction: column;
+  overflow: hidden; position: relative;
+  min-height: 0;
+}
+
+.today-card::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: linear-gradient(140deg, rgba(255,255,255,.022) 0%, transparent 50%);
+  pointer-events: none; border-radius: inherit;
+}
+
+.card-eyebrow {
+  font-size: 9.5px; font-weight: 500;
+  letter-spacing: .13em; text-transform: uppercase;
+  color: var(--text-2); margin-bottom: 8px; flex-shrink: 0;
+}
+
+.card-heading {
+  font-family: var(--f-disp);
+  font-size: 19px; font-weight: 300;
+  color: var(--text-1); letter-spacing: .015em;
+  margin-bottom: 12px; flex-shrink: 0;
+}
+
+.task-list {
+  flex: 1; display: flex; flex-direction: column;
+  gap: 0; overflow-y: auto; min-height: 0;
+}
+
+.task-list::-webkit-scrollbar { width: 3px; }
+.task-list::-webkit-scrollbar-track { background: transparent; }
+.task-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,.12); border-radius: 3px; }
+
+.task-item {
+  display: flex; flex-direction: column; gap: 5px;
+  padding: 9px 8px; border-radius: 10px;
+  cursor: pointer; flex-shrink: 0;
+  border-bottom: 1px solid rgba(255,255,255,.038);
+  transition: background .15s ease;
+}
+
+.task-item:last-child { border-bottom: none; }
+.task-item:active { background: rgba(255,255,255,.06); }
+
+.task-title {
+  font-size: 12.5px; font-weight: 400;
+  color: var(--text-1); line-height: 1.35; letter-spacing: .01em;
+}
+
+.task-chips { display: flex; gap: 5px; flex-wrap: wrap; }
+
+.label-chip {
+  font-size: 8.5px; font-weight: 500;
+  letter-spacing: .08em; text-transform: uppercase;
+  padding: 2px 7px; border-radius: 100px;
+}
+
+.label-dev     { background: rgba(96,165,250,.18);  color: #7eb8f7; }
+.label-career  { background: rgba(251,191,36,.18);   color: #f5c842; }
+.label-life    { background: rgba(74,222,128,.18);   color: #4ade80; }
+.label-routine { background: rgba(148,163,184,.18);  color: #94a3b8; }
+
+.task-empty {
+  font-size: 12px; color: var(--text-3);
+  text-align: center; padding: 18px 0;
+}
+
+.no-config {
+  font-size: 11px; color: var(--text-2);
+  text-align: center; line-height: 1.7; padding: 10px 0;
+}
+
+.no-config-sub { font-size: 10px; color: var(--text-3); }
+
+.card-footer {
+  flex-shrink: 0; padding-top: 8px;
+  display: flex; align-items: center;
+  justify-content: space-between;
+  min-height: 20px;
+}
+
+.card-updated { font-size: 9px; letter-spacing: .05em; color: var(--text-3); }
+
+.card-error-badge {
+  font-size: 9px; letter-spacing: .05em;
+  color: rgba(248,113,113,.7);
+  display: flex; align-items: center; gap: 4px;
+}
+
+.card-error-badge::before {
+  content: ''; width: 4px; height: 4px;
+  border-radius: 50%; background: rgba(248,113,113,.7);
+}
+
+.card-loading {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 11px; color: var(--text-3); padding: 8px 0;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+.spinner {
+  width: 10px; height: 10px; flex-shrink: 0;
+  border: 1.5px solid rgba(255,255,255,.1);
+  border-top-color: rgba(255,255,255,.45);
+  border-radius: 50%;
+  animation: spin .7s linear infinite;
+}
+
+/* ═══════════════════════ ISSUE DETAIL MODAL ═══════════════════════ */
+
+#issue-overlay { z-index: 700; }
+
+.issue-modal {
+  width: min(640px, calc(100vw - 40px));
+  max-height: calc(100vh - 60px);
+}
+
+.issue-modal-head {
+  display: flex; align-items: flex-start;
+  justify-content: space-between; gap: 12px;
+  padding: 20px 22px 14px; flex-shrink: 0;
+}
+
+.issue-modal-title-wrap { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+
+.issue-modal-labels { display: flex; gap: 5px; flex-wrap: wrap; }
+
+.issue-body {
+  padding: 4px 22px 20px;
+  overflow-y: auto; flex: 1;
+  user-select: text !important;
+  -webkit-user-select: text !important;
+  font-size: 13px; line-height: 1.65;
+  color: var(--text-2);
+}
+
+.issue-body::-webkit-scrollbar { width: 3px; }
+.issue-body::-webkit-scrollbar-track { background: transparent; }
+.issue-body::-webkit-scrollbar-thumb { background: rgba(255,255,255,.12); border-radius: 3px; }
+
+.issue-body h1, .issue-body h2, .issue-body h3 {
+  font-family: var(--f-disp); font-weight: 400;
+  color: var(--text-1); letter-spacing: .01em;
+  margin: 16px 0 6px;
+}
+
+.issue-body h1 { font-size: 20px; }
+.issue-body h2 { font-size: 17px; }
+.issue-body h3 { font-size: 15px; }
+
+.issue-body p { margin: 0 0 8px; }
+
+.issue-body ul, .issue-body ol {
+  padding-left: 18px; margin: 0 0 8px;
+}
+
+.issue-body ul.contains-task-list { list-style: none; padding-left: 2px; }
+
+.issue-body li { margin: 3px 0; }
+
+.issue-body li input[type="checkbox"] {
+  -webkit-appearance: none; appearance: none;
+  width: 14px; height: 14px; border-radius: 4px;
+  border: 1.5px solid rgba(255,255,255,.22);
+  background: rgba(255,255,255,.04);
+  cursor: pointer; vertical-align: middle;
+  margin-right: 7px; flex-shrink: 0;
+  position: relative; top: -1px;
+  transition: all .18s ease;
+}
+
+.issue-body li input[type="checkbox"]:checked {
+  background: var(--accent); border-color: var(--accent);
+}
+
+.issue-body li input[type="checkbox"]:checked::after {
+  content: '';
+  position: absolute; left: 3px; top: 0px;
+  width: 5px; height: 8px;
+  border: 2px solid rgba(0,0,0,.8);
+  border-top: none; border-left: none;
+  transform: rotate(42deg);
+}
+
+.issue-body li.cb-checked {
+  opacity: .5;
+  text-decoration: line-through;
+  text-decoration-color: rgba(255,255,255,.25);
+}
+
+.issue-body pre {
+  background: rgba(0,0,0,.3); border-radius: 8px;
+  padding: 12px; overflow-x: auto; margin: 10px 0;
+  border: 1px solid rgba(255,255,255,.06);
+}
+
+.issue-body code {
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  font-size: 11.5px; color: rgba(255,255,255,.82);
+}
+
+.issue-body p > code {
+  background: rgba(255,255,255,.08);
+  border-radius: 4px; padding: 1px 5px;
+}
+
+.issue-body table {
+  width: 100%; border-collapse: collapse;
+  margin: 10px 0; font-size: 12px;
+}
+
+.issue-body th {
+  padding: 7px 10px; text-align: left;
+  border-bottom: 1px solid rgba(255,255,255,.1);
+  color: var(--text-2); font-weight: 500;
+  font-size: 10px; letter-spacing: .06em; text-transform: uppercase;
+}
+
+.issue-body td {
+  padding: 7px 10px;
+  border-bottom: 1px solid rgba(255,255,255,.04);
+}
+
+.issue-body hr {
+  border: none;
+  border-top: 1px solid rgba(255,255,255,.08);
+  margin: 14px 0;
+}
+
+.issue-body a { color: var(--accent); text-decoration: none; }
+
+.issue-body blockquote {
+  border-left: 3px solid rgba(255,255,255,.12);
+  margin: 8px 0; padding: 4px 14px;
+  color: var(--text-3);
+}
+
+/* ═══════════════════════ GITHUB SETTINGS ═══════════════════════ */
+
+.g-field { display: flex; flex-direction: column; gap: 7px; margin-bottom: 13px; }
+
+.g-lbl {
+  font-size: 9.5px; font-weight: 500;
+  letter-spacing: .11em; text-transform: uppercase;
+  color: var(--text-2);
+}
+
+.g-inp {
+  width: 100%; padding: 9px 12px;
+  background: rgba(255,255,255,.05);
+  border: 1px solid rgba(255,255,255,.07);
+  border-radius: 10px;
+  font-family: var(--f-ui); font-size: 13px;
+  color: var(--text-1); outline: none;
+  -webkit-appearance: none;
+  transition: border-color .2s ease;
+}
+
+.g-inp:focus { border-color: rgba(255,255,255,.2); }
+.g-inp::placeholder { color: var(--text-3); }
+
+.g-save {
+  margin-top: 4px; width: 100%; padding: 11px;
+  border-radius: 10px; border: none;
+  background: rgba(240,168,48,.15); color: #f0a830;
+  font-family: var(--f-ui); font-size: 12px; font-weight: 500;
+  letter-spacing: .07em; cursor: pointer;
+  transition: all .25s ease;
+}
+
+.g-save:active { transform: scale(.98); }
+.g-save.saved  { background: rgba(74,222,128,.15); color: #4ade80; }
 </style>
 </head>
 <body>
@@ -541,16 +824,13 @@ body::after {
   <!-- ── LEFT COLUMN ── -->
   <div class="col-left">
 
-    <div class="ph-card">
-      <div class="ph-eyebrow">Today</div>
-      <div class="ph-heading">タスク</div>
-      <div class="ph-items">
-        <div class="ph-row"><div class="ph-dot"></div><div class="ph-bar" style="width:67%"></div></div>
-        <div class="ph-row"><div class="ph-dot"></div><div class="ph-bar" style="width:50%"></div></div>
-        <div class="ph-row"><div class="ph-dot"></div><div class="ph-bar" style="width:78%"></div></div>
-        <div class="ph-row"><div class="ph-dot"></div><div class="ph-bar" style="width:43%"></div></div>
+    <div class="today-card" id="today-card">
+      <div class="card-eyebrow">Today</div>
+      <div class="card-heading">タスク</div>
+      <div class="task-list" id="task-list">
+        <div class="card-loading"><div class="spinner"></div>取得中…</div>
       </div>
-      <div class="ph-badge">Phase 1b — GitHub Issues 連携予定</div>
+      <div class="card-footer" id="today-footer"></div>
     </div>
 
     <div class="ph-card">
@@ -687,6 +967,7 @@ body::after {
     <div class="modal-tabs">
       <button class="m-tab active" data-tab="timer">タイマー</button>
       <button class="m-tab"        data-tab="bg">テーマ</button>
+      <button class="m-tab"        data-tab="github">GitHub</button>
     </div>
 
     <div class="modal-body">
@@ -744,7 +1025,45 @@ body::after {
         <div class="bg-grid" id="bgGrid"></div>
       </div>
 
+      <!-- GitHub pane -->
+      <div class="tab-pane" id="pane-github">
+        <div class="g-field">
+          <div class="g-lbl">Personal Access Token</div>
+          <input class="g-inp" type="password" id="inp-gh-token"
+                 placeholder="ghp_xxxxxxxxxxxx" autocomplete="off">
+        </div>
+        <div class="g-field">
+          <div class="g-lbl">リポジトリオーナー</div>
+          <input class="g-inp" type="text" id="inp-gh-owner" placeholder="username">
+        </div>
+        <div class="g-field">
+          <div class="g-lbl">リポジトリ名</div>
+          <input class="g-inp" type="text" id="inp-gh-repo" placeholder="KaHal-LIFE">
+        </div>
+        <button class="g-save" id="btnGhSave">保存</button>
+      </div>
+
     </div>
+  </div>
+</div>
+
+<!-- Issue detail overlay -->
+<div class="overlay" id="issue-overlay">
+  <div class="modal issue-modal">
+    <div class="issue-modal-head">
+      <div class="issue-modal-title-wrap">
+        <div class="modal-title" id="issue-title"></div>
+        <div class="issue-modal-labels" id="issue-labels"></div>
+      </div>
+      <button class="btn-close" id="btnIssueClose">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="2.5" stroke-linecap="round">
+          <line x1="18" y1="6"  x2="6"  y2="18"/>
+          <line x1="6"  y1="6"  x2="18" y2="18"/>
+        </svg>
+      </button>
+    </div>
+    <div class="issue-body" id="issue-body"></div>
   </div>
 </div>
 
@@ -1089,6 +1408,7 @@ const elFab     = document.getElementById('fab');
 
 function openModal() {
   syncInputs();
+  syncGithubInputs();
   elOverlay.classList.add('open');
   elFab.classList.add('open');
 }
@@ -1194,6 +1514,248 @@ function checkDayReset() {
 setInterval(checkDayReset, 60_000);
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// GitHub config
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+const DEFAULT_GITHUB = { token: '', owner: '', repo: '' };
+
+function loadGithubConfig() {
+  try {
+    const g = JSON.parse(localStorage.getItem('kahal_github'));
+    if (g) return { ...DEFAULT_GITHUB, ...g };
+  } catch(e) {}
+  return { ...DEFAULT_GITHUB };
+}
+
+function saveGithubConfig(cfg) {
+  localStorage.setItem('kahal_github', JSON.stringify(cfg));
+}
+
+function syncGithubInputs() {
+  const g = loadGithubConfig();
+  document.getElementById('inp-gh-token').value = g.token;
+  document.getElementById('inp-gh-owner').value = g.owner;
+  document.getElementById('inp-gh-repo').value  = g.repo;
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// Issues API
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+const CACHE_KEY  = 'kahal_issues_cache';
+const REFRESH_MS = 5 * 60 * 1000;
+
+const CATEGORY_NAMES = ['dev', 'career', 'life', 'routine'];
+
+function getCategoryLabels(labels) {
+  return labels
+    .map(l => l.name.toLowerCase())
+    .filter(n => CATEGORY_NAMES.includes(n));
+}
+
+function escapeHtml(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function loadCachedIssues() {
+  try {
+    const c = JSON.parse(localStorage.getItem(CACHE_KEY));
+    return c ? c.issues : null;
+  } catch(e) { return null; }
+}
+
+function cacheIssues(issues) {
+  localStorage.setItem(CACHE_KEY, JSON.stringify({
+    issues,
+    fetchedAt: new Date().toISOString()
+  }));
+}
+
+function getCachedFetchedAt() {
+  try {
+    const c = JSON.parse(localStorage.getItem(CACHE_KEY));
+    return c ? c.fetchedAt : null;
+  } catch(e) { return null; }
+}
+
+async function fetchTodayIssues() {
+  const gh  = loadGithubConfig();
+  const url = `https://api.github.com/repos/${encodeURIComponent(gh.owner)}/${encodeURIComponent(gh.repo)}/issues?state=open&per_page=100`;
+  const res = await fetch(url, {
+    headers: {
+      'Authorization': `Bearer ${gh.token}`,
+      'Accept': 'application/vnd.github+json',
+      'X-GitHub-Api-Version': '2022-11-28'
+    }
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const all = await res.json();
+  // Keep only issues that have a label containing "today" (case-insensitive)
+  return all.filter(issue =>
+    issue.labels.some(l => l.name.toLowerCase().includes('today'))
+  );
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// Today card render
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+let todayIssues = null;
+
+function renderTodayCard(issues, state) {
+  todayIssues = issues;
+  const list   = document.getElementById('task-list');
+  const footer = document.getElementById('today-footer');
+
+  if (state === 'config') {
+    list.innerHTML = `<div class="no-config">GitHub を設定してください<br>
+      <span class="no-config-sub">右下の設定ボタン → GitHub タブ</span></div>`;
+    footer.innerHTML = '';
+    return;
+  }
+
+  if (state === 'loading' && !issues) {
+    list.innerHTML = `<div class="card-loading"><div class="spinner"></div>取得中…</div>`;
+    footer.innerHTML = '';
+    return;
+  }
+
+  if (!issues || issues.length === 0) {
+    list.innerHTML = `<div class="task-empty">Today タスクなし</div>`;
+  } else {
+    list.innerHTML = issues.map(issue => {
+      const cats  = getCategoryLabels(issue.labels);
+      const chips = cats.map(c =>
+        `<span class="label-chip label-${c}">${c}</span>`
+      ).join('');
+      return `<div class="task-item" data-id="${issue.id}">
+        <div class="task-title">${escapeHtml(issue.title)}</div>
+        ${chips ? `<div class="task-chips">${chips}</div>` : ''}
+      </div>`;
+    }).join('');
+
+    list.querySelectorAll('.task-item').forEach(el => {
+      const id    = parseInt(el.dataset.id, 10);
+      const issue = issues.find(i => i.id === id);
+      el.addEventListener('click', () => openIssueModal(issue));
+    });
+  }
+
+  const at       = getCachedFetchedAt();
+  const timeStr  = at ? formatFetchedAt(at) : '';
+  const errBadge = state === 'error'
+    ? '<span class="card-error-badge">オフライン</span>' : '';
+  footer.innerHTML = `${errBadge}<span class="card-updated">${timeStr}</span>`;
+}
+
+function formatFetchedAt(isoStr) {
+  const d = new Date(isoStr);
+  return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')} 更新`;
+}
+
+async function refreshTodayIssues() {
+  const gh = loadGithubConfig();
+  if (!gh.token || !gh.owner || !gh.repo) {
+    renderTodayCard(null, 'config');
+    return;
+  }
+  const cached = loadCachedIssues();
+  if (!cached) renderTodayCard(null, 'loading');
+  try {
+    const issues = await fetchTodayIssues();
+    cacheIssues(issues);
+    renderTodayCard(issues, null);
+  } catch(e) {
+    console.warn('Issues fetch failed:', e.message);
+    renderTodayCard(cached, 'error');
+  }
+}
+
+setInterval(refreshTodayIssues, REFRESH_MS);
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// Issue checkbox state
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+function loadIssueCheckboxes(issueId) {
+  try {
+    return JSON.parse(localStorage.getItem(`kahal_issue_${issueId}`)) || [];
+  } catch(e) { return []; }
+}
+
+function saveIssueCheckboxes(issueId, state) {
+  localStorage.setItem(`kahal_issue_${issueId}`, JSON.stringify(state));
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// Issue detail modal
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+const elIssueOverlay = document.getElementById('issue-overlay');
+
+function openIssueModal(issue) {
+  if (!issue) return;
+
+  document.getElementById('issue-title').textContent = issue.title;
+
+  const cats = getCategoryLabels(issue.labels);
+  document.getElementById('issue-labels').innerHTML =
+    cats.map(c => `<span class="label-chip label-${c}">${c}</span>`).join('');
+
+  const bodyEl = document.getElementById('issue-body');
+  const md     = issue.body || '（本文なし）';
+  bodyEl.innerHTML = typeof marked !== 'undefined'
+    ? marked.parse(md)
+    : `<pre style="white-space:pre-wrap">${escapeHtml(md)}</pre>`;
+
+  // Restore and activate checkboxes
+  const cbState = loadIssueCheckboxes(issue.id);
+  bodyEl.querySelectorAll('input[type="checkbox"]').forEach((cb, i) => {
+    cb.removeAttribute('disabled');
+    if (cbState[i] !== undefined) cb.checked = cbState[i];
+    const li = cb.closest('li');
+    if (li && cb.checked) li.classList.add('cb-checked');
+    cb.addEventListener('change', () => {
+      const state = [...bodyEl.querySelectorAll('input[type="checkbox"]')]
+        .map(c => c.checked);
+      saveIssueCheckboxes(issue.id, state);
+      if (li) li.classList.toggle('cb-checked', cb.checked);
+    });
+  });
+
+  elIssueOverlay.classList.add('open');
+}
+
+function closeIssueModal() {
+  elIssueOverlay.classList.remove('open');
+}
+
+elIssueOverlay.addEventListener('click', e => {
+  if (e.target === elIssueOverlay) closeIssueModal();
+});
+document.getElementById('btnIssueClose').addEventListener('click', closeIssueModal);
+
+// GitHub config save
+document.getElementById('btnGhSave').addEventListener('click', () => {
+  const token = document.getElementById('inp-gh-token').value.trim();
+  const owner = document.getElementById('inp-gh-owner').value.trim();
+  const repo  = document.getElementById('inp-gh-repo').value.trim();
+  saveGithubConfig({ token, owner, repo });
+  const btn = document.getElementById('btnGhSave');
+  btn.textContent = '保存しました ✓';
+  btn.classList.add('saved');
+  setTimeout(() => {
+    btn.textContent = '保存';
+    btn.classList.remove('saved');
+  }, 2000);
+  refreshTodayIssues();
+});
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // Init
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -1201,6 +1763,7 @@ applyBg(bgIdx);
 buildBgGrid();
 initMode('focus');
 renderStats();
+refreshTodayIssues();
 </script>
 </body>
 </html>
