@@ -815,6 +815,89 @@ body::after {
 
 .g-save:active { transform: scale(.98); }
 .g-save.saved  { background: rgba(74,222,128,.15); color: #4ade80; }
+
+/* ═══════════════════════ NEXT UP CARD ═══════════════════════ */
+
+.next-card {
+  flex: 1;
+  background: var(--glass);
+  border: 1px solid var(--glass-border);
+  border-radius: 20px;
+  padding: 20px 22px;
+  display: flex; flex-direction: column;
+  overflow: hidden; position: relative;
+  min-height: 0;
+}
+
+.next-card::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: linear-gradient(140deg, rgba(255,255,255,.022) 0%, transparent 50%);
+  pointer-events: none; border-radius: inherit;
+}
+
+.event-list {
+  flex: 1; display: flex; flex-direction: column;
+  gap: 0; overflow-y: auto; min-height: 0;
+}
+
+.event-list::-webkit-scrollbar { width: 3px; }
+.event-list::-webkit-scrollbar-track { background: transparent; }
+.event-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,.12); border-radius: 3px; }
+
+.event-item {
+  display: flex; flex-direction: column; gap: 4px;
+  padding: 9px 8px; border-radius: 10px;
+  border-bottom: 1px solid rgba(255,255,255,.038);
+  flex-shrink: 0;
+}
+
+.event-item:last-child { border-bottom: none; }
+
+.event-time {
+  font-size: 10px; font-weight: 500;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--accent);
+}
+
+.event-name {
+  font-size: 12.5px; font-weight: 400;
+  color: var(--text-1); line-height: 1.35; letter-spacing: .01em;
+}
+
+/* ═══════════════════════ CALENDAR SETTINGS ═══════════════════════ */
+
+.c-account-row {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 10px; margin-bottom: 13px;
+}
+
+.c-account-name {
+  font-size: 12px; color: var(--text-2); min-width: 0;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+.c-signin {
+  margin-top: 4px; width: 100%; padding: 11px;
+  border-radius: 10px; border: none;
+  background: rgba(66,133,244,.18); color: #7aabf7;
+  font-family: var(--f-ui); font-size: 12px; font-weight: 500;
+  letter-spacing: .07em; cursor: pointer;
+  transition: all .2s ease;
+}
+
+.c-signin:active { transform: scale(.98); background: rgba(66,133,244,.3); }
+.c-signin:disabled { opacity: .45; cursor: default; }
+
+.c-signout {
+  padding: 7px 12px; border-radius: 8px; border: none;
+  background: rgba(255,255,255,.07); color: var(--text-2);
+  font-family: var(--f-ui); font-size: 11px; font-weight: 500;
+  letter-spacing: .05em; cursor: pointer; flex-shrink: 0;
+  transition: all .2s ease;
+}
+
+.c-signout:active { background: rgba(255,255,255,.14); }
 </style>
 </head>
 <body>
@@ -833,15 +916,13 @@ body::after {
       <div class="card-footer" id="today-footer"></div>
     </div>
 
-    <div class="ph-card">
-      <div class="ph-eyebrow">Next Up</div>
-      <div class="ph-heading">予定</div>
-      <div class="ph-items">
-        <div class="ph-row"><div class="ph-dot"></div><div class="ph-bar" style="width:56%"></div></div>
-        <div class="ph-row"><div class="ph-dot"></div><div class="ph-bar" style="width:72%"></div></div>
-        <div class="ph-row"><div class="ph-dot"></div><div class="ph-bar" style="width:41%"></div></div>
+    <div class="next-card" id="next-card">
+      <div class="card-eyebrow">Next Up</div>
+      <div class="card-heading">予定</div>
+      <div class="event-list" id="event-list">
+        <div class="card-loading"><div class="spinner"></div>取得中…</div>
       </div>
-      <div class="ph-badge">Phase 1c — Google Calendar 連携予定</div>
+      <div class="card-footer" id="next-footer"></div>
     </div>
 
   </div>
@@ -968,6 +1049,7 @@ body::after {
       <button class="m-tab active" data-tab="timer">タイマー</button>
       <button class="m-tab"        data-tab="bg">テーマ</button>
       <button class="m-tab"        data-tab="github">GitHub</button>
+      <button class="m-tab"        data-tab="calendar">Calendar</button>
     </div>
 
     <div class="modal-body">
@@ -1043,6 +1125,17 @@ body::after {
         <button class="g-save" id="btnGhSave">保存</button>
       </div>
 
+      <!-- Calendar pane -->
+      <div class="tab-pane" id="pane-calendar">
+        <div class="g-field">
+          <div class="g-lbl">Google OAuth クライアントID</div>
+          <input class="g-inp" type="text" id="inp-gcal-clientid"
+                 placeholder="xxxxxxxxxx.apps.googleusercontent.com" autocomplete="off">
+        </div>
+        <button class="g-save" id="btnGcalSave">保存</button>
+        <div id="gcal-auth-status" style="margin-top:14px"></div>
+      </div>
+
     </div>
   </div>
 </div>
@@ -1087,6 +1180,12 @@ const MODE_LABEL  = { focus: '集中', short: '短い休憩', long: '長い休�
 const MODE_COLOR  = { focus: '#f0a830', short: '#4ecdc4', long: '#a78bfa' };
 const MODE_STROKE = { focus: 'url(#gFocus)', short: 'url(#gShort)', long: 'url(#gLong)' };
 const MODE_GLOW   = { focus: 'glow-focus', short: 'glow-short', long: 'glow-long' };
+
+const GCAL_CACHE_KEY  = 'kahal_gcal_events_cache';
+const GCAL_CONFIG_KEY = 'kahal_gcal';
+const GCAL_TOKEN_KEY  = 'kahal_gcal_token';
+const GCAL_REFRESH_MS = 30 * 60 * 1000;
+const GCAL_SCOPE      = 'https://www.googleapis.com/auth/calendar.readonly';
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // State
@@ -1143,6 +1242,64 @@ function loadStats() {
 
 function saveStats() {
   localStorage.setItem('kahal_stats', JSON.stringify(stats));
+}
+
+function loadGcalConfig() {
+  try {
+    const c = JSON.parse(localStorage.getItem(GCAL_CONFIG_KEY));
+    return c && c.clientId ? c : null;
+  } catch(e) { return null; }
+}
+
+function saveGcalConfig(cfg) {
+  localStorage.setItem(GCAL_CONFIG_KEY, JSON.stringify(cfg));
+}
+
+function loadGcalToken() {
+  try {
+    const t = JSON.parse(localStorage.getItem(GCAL_TOKEN_KEY));
+    if (!t || !t.access_token) return null;
+    if (t.expiry_ms && Date.now() > t.expiry_ms) {
+      localStorage.removeItem(GCAL_TOKEN_KEY);
+      return null;
+    }
+    return t;
+  } catch(e) { return null; }
+}
+
+function saveGcalToken(tokenResponse) {
+  const expiry_ms = tokenResponse.expires_in
+    ? Date.now() + tokenResponse.expires_in * 1000 - 60_000
+    : null;
+  localStorage.setItem(GCAL_TOKEN_KEY, JSON.stringify({
+    access_token: tokenResponse.access_token,
+    expiry_ms
+  }));
+}
+
+function clearGcalToken() {
+  localStorage.removeItem(GCAL_TOKEN_KEY);
+}
+
+function loadCachedEvents() {
+  try {
+    const c = JSON.parse(localStorage.getItem(GCAL_CACHE_KEY));
+    return c ? c.events : null;
+  } catch(e) { return null; }
+}
+
+function cacheEvents(events) {
+  localStorage.setItem(GCAL_CACHE_KEY, JSON.stringify({
+    events,
+    fetchedAt: new Date().toISOString()
+  }));
+}
+
+function getCachedEventsUpdatedAt() {
+  try {
+    const c = JSON.parse(localStorage.getItem(GCAL_CACHE_KEY));
+    return c ? c.fetchedAt : null;
+  } catch(e) { return null; }
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -1409,6 +1566,7 @@ const elFab     = document.getElementById('fab');
 function openModal() {
   syncInputs();
   syncGithubInputs();
+  syncCalendarPane();
   elOverlay.classList.add('open');
   elFab.classList.add('open');
 }
@@ -1512,6 +1670,218 @@ function checkDayReset() {
 
 // Re-check every minute
 setInterval(checkDayReset, 60_000);
+// Refresh calendar every 30 minutes
+setInterval(fetchUpcomingEvents, GCAL_REFRESH_MS);
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// Google Calendar — GIS & OAuth
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+let tokenClient = null;
+
+function loadGIS() {
+  const cfg = loadGcalConfig();
+  if (!cfg) return;
+  const s = document.createElement('script');
+  s.src = 'https://accounts.google.com/gsi/client';
+  s.async = true;
+  s.defer = true;
+  s.onload = () => initGIS(cfg.clientId);
+  s.onerror = () => console.warn('GIS load failed');
+  document.head.appendChild(s);
+}
+
+function initGIS(clientId) {
+  if (!window.google?.accounts?.oauth2) {
+    console.warn('GIS not available');
+    return;
+  }
+  tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: clientId,
+    scope: GCAL_SCOPE,
+    callback: onTokenResponse,
+  });
+  // トークンが既にあればすぐ取得開始
+  if (loadGcalToken()) {
+    fetchUpcomingEvents();
+  } else {
+    renderNextCard(null, 'config');
+  }
+}
+
+function onTokenResponse(response) {
+  if (response.error) {
+    console.warn('GCal OAuth error:', response.error);
+    clearGcalToken();
+    renderNextCard(null, 'config');
+    syncCalendarPane();
+    return;
+  }
+  saveGcalToken(response);
+  syncCalendarPane();
+  fetchUpcomingEvents();
+}
+
+function signInGCal() {
+  if (!tokenClient) {
+    const cfg = loadGcalConfig();
+    if (!cfg) return;
+    // GIS がまだロードされていない場合はロードしてから再試行
+    loadGIS();
+    return;
+  }
+  tokenClient.requestAccessToken();
+}
+
+function signOutGCal() {
+  const t = loadGcalToken();
+  if (t && window.google?.accounts?.oauth2) {
+    google.accounts.oauth2.revoke(t.access_token, () => {});
+  }
+  clearGcalToken();
+  renderNextCard(null, 'config');
+  syncCalendarPane();
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// Google Calendar — API
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+function formatEventTime(start) {
+  if (!start) return '';
+  // 終日イベント: start.date のみ
+  if (start.date && !start.dateTime) {
+    const [y, m, d] = start.date.split('-').map(Number);
+    const today     = new Date();
+    const tomorrow  = new Date(today); tomorrow.setDate(today.getDate() + 1);
+    if (d === today.getDate()     && m === today.getMonth()+1)     return '今日（終日）';
+    if (d === tomorrow.getDate()  && m === tomorrow.getMonth()+1)  return '明日（終日）';
+    return `${m}/${d}`;
+  }
+  // 時刻あり
+  const dt       = new Date(start.dateTime);
+  const hh       = String(dt.getHours()).padStart(2,'0');
+  const mm       = String(dt.getMinutes()).padStart(2,'0');
+  const timeStr  = `${hh}:${mm}`;
+  const todayD   = new Date();
+  const tomorrowD = new Date(todayD); tomorrowD.setDate(todayD.getDate() + 1);
+  if (dt.toDateString() === todayD.toDateString())    return `今日 ${timeStr}`;
+  if (dt.toDateString() === tomorrowD.toDateString()) return `明日 ${timeStr}`;
+  return `${dt.getMonth()+1}/${dt.getDate()} ${timeStr}`;
+}
+
+async function fetchUpcomingEvents() {
+  const cfg = loadGcalConfig();
+  if (!cfg) { renderNextCard(null, 'config'); return; }
+
+  const token = loadGcalToken();
+  const cached = loadCachedEvents();
+  if (!token) { renderNextCard(cached, 'config'); return; }
+
+  if (!cached) renderNextCard(null, 'loading');
+
+  try {
+    const now = new Date().toISOString();
+    const url = `https://www.googleapis.com/calendar/v3/calendars/primary/events`
+      + `?maxResults=3&orderBy=startTime&singleEvents=true&timeMin=${encodeURIComponent(now)}`;
+    const res = await fetch(url, {
+      headers: { 'Authorization': `Bearer ${token.access_token}` }
+    });
+    if (res.status === 401) {
+      clearGcalToken();
+      syncCalendarPane();
+      renderNextCard(cached, 'config');
+      return;
+    }
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    const events = (data.items || []).map(ev => ({
+      id:      ev.id,
+      summary: ev.summary || '（タイトルなし）',
+      start:   ev.start,
+    }));
+    cacheEvents(events);
+    renderNextCard(events, null);
+  } catch(e) {
+    console.warn('GCal fetch failed:', e.message);
+    renderNextCard(cached, 'error');
+  }
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// Next Up card render
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+function renderNextCard(events, state) {
+  const list   = document.getElementById('event-list');
+  const footer = document.getElementById('next-footer');
+
+  if (state === 'config') {
+    list.innerHTML = `<div class="no-config">Google カレンダーを設定してください<br>
+      <span class="no-config-sub">右下の設定ボタン → Calendar タブ</span></div>`;
+    footer.innerHTML = '';
+    return;
+  }
+
+  if (state === 'loading' && !events) {
+    list.innerHTML = `<div class="card-loading"><div class="spinner"></div>取得中…</div>`;
+    footer.innerHTML = '';
+    return;
+  }
+
+  if (!events || events.length === 0) {
+    list.innerHTML = `<div class="task-empty">予定なし</div>`;
+  } else {
+    list.innerHTML = events.map(ev => `
+      <div class="event-item">
+        <div class="event-time">${escapeHtml(formatEventTime(ev.start))}</div>
+        <div class="event-name">${escapeHtml(ev.summary)}</div>
+      </div>`
+    ).join('');
+  }
+
+  const at       = getCachedEventsUpdatedAt();
+  const timeStr  = at ? formatFetchedAt(at) : '';
+  const errBadge = state === 'error'
+    ? '<span class="card-error-badge">オフライン</span>' : '';
+  footer.innerHTML = `${errBadge}<span class="card-updated">${timeStr}</span>`;
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// Calendar settings pane
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+function syncCalendarPane() {
+  const cfg    = loadGcalConfig();
+  const inp    = document.getElementById('inp-gcal-clientid');
+  const status = document.getElementById('gcal-auth-status');
+  if (!inp || !status) return;
+
+  inp.value = cfg ? cfg.clientId : '';
+
+  const token = loadGcalToken();
+  if (token) {
+    // サインイン済み
+    status.innerHTML = `
+      <div class="c-account-row">
+        <span class="c-account-name">サインイン済み</span>
+        <button class="c-signout" id="btnGcalSignout">サインアウト</button>
+      </div>`;
+    document.getElementById('btnGcalSignout')
+      .addEventListener('click', signOutGCal);
+  } else {
+    // 未サインイン
+    status.innerHTML = cfg
+      ? `<button class="c-signin" id="btnGcalSignin">Googleでサインイン</button>`
+      : `<button class="c-signin" id="btnGcalSignin" disabled>
+           まずクライアントIDを保存してください
+         </button>`;
+    const signinBtn = document.getElementById('btnGcalSignin');
+    if (signinBtn && !signinBtn.disabled) {
+      signinBtn.addEventListener('click', signInGCal);
+    }
+  }
+}
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // GitHub config
@@ -1739,6 +2109,23 @@ elIssueOverlay.addEventListener('click', e => {
 });
 document.getElementById('btnIssueClose').addEventListener('click', closeIssueModal);
 
+// Calendar config save
+document.getElementById('btnGcalSave').addEventListener('click', () => {
+  const clientId = document.getElementById('inp-gcal-clientid').value.trim();
+  if (!clientId) return;
+  saveGcalConfig({ clientId });
+  const btn = document.getElementById('btnGcalSave');
+  btn.textContent = '保存しました ✓';
+  btn.classList.add('saved');
+  setTimeout(() => {
+    btn.textContent = '保存';
+    btn.classList.remove('saved');
+  }, 2000);
+  // GIS がまだロードされていなければロード開始
+  if (!tokenClient) loadGIS();
+  syncCalendarPane();
+});
+
 // GitHub config save
 document.getElementById('btnGhSave').addEventListener('click', () => {
   const token = document.getElementById('inp-gh-token').value.trim();
@@ -1764,6 +2151,14 @@ buildBgGrid();
 initMode('focus');
 renderStats();
 refreshTodayIssues();
+
+// Google Calendar init
+const _gcalCfg = loadGcalConfig();
+if (_gcalCfg) {
+  loadGIS();
+} else {
+  renderNextCard(null, 'config');
+}
 </script>
 </body>
 </html>
